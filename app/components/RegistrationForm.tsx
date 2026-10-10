@@ -13,7 +13,11 @@ type TelegramWebApp = {
 
 function getWebApp(): TelegramWebApp | null {
   if (typeof window === "undefined") return null;
-  return (window as Window & { Telegram?: { WebApp: TelegramWebApp } }).Telegram?.WebApp ?? null;
+  console.log("getwebapp", window);
+  return (
+    (window as Window & { Telegram?: { WebApp: TelegramWebApp } }).Telegram
+      ?.WebApp ?? null
+  );
 }
 
 export default function RegistrationForm() {
@@ -38,14 +42,19 @@ export default function RegistrationForm() {
     setError(null);
 
     const tg = getWebApp();
+    console.log("tg", tg);
     if (!tg) {
       setError("Откройте форму через Telegram (кнопка «Регистрация» в боте).");
       return;
     }
 
     const form = e.currentTarget;
-    const full_name = (form.elements.namedItem("full_name") as HTMLInputElement).value.trim();
-    const iin = (form.elements.namedItem("iin") as HTMLInputElement).value.replace(/\D/g, "");
+    const full_name = (
+      form.elements.namedItem("full_name") as HTMLInputElement
+    ).value.trim();
+    const iin = (
+      form.elements.namedItem("iin") as HTMLInputElement
+    ).value.replace(/\D/g, "");
     const phoneEl = form.elements.namedItem("phone") as HTMLInputElement;
     const phone = phoneEl.value.trim() || null;
 
@@ -59,13 +68,34 @@ export default function RegistrationForm() {
     }
 
     setSubmitting(true);
+    try {
+      const payload = JSON.stringify({
+        full_name,
+        iin,
+        phone,
+      });
+
+      console.log("Отправляем данные:", payload);
+
+      tg.sendData(payload);
+
+      console.log("sendData вызван");
+    } catch (err) {
+      console.error("Ошибка sendData:", err);
+      setError("Не удалось отправить данные");
+      setSubmitting(false);
+    }
     tg.sendData(JSON.stringify({ full_name, iin, phone }));
     tg.close();
   }
 
   return (
     <>
-      <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" onLoad={initTelegram} />
+      <Script
+        src="https://telegram.org/js/telegram-web-app.js"
+        strategy="afterInteractive"
+        onLoad={initTelegram}
+      />
       <div className="min-h-screen bg-[var(--tg-bg,#f4f4f5)] text-[var(--tg-text,#111)] px-4 py-6 max-w-md mx-auto">
         <h1 className="text-xl font-semibold mb-2">Регистрация</h1>
         <p className="text-sm opacity-75 mb-6">
